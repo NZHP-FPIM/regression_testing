@@ -177,4 +177,40 @@ function bii-dbt-missing-test-cases() {
 }
 
 
+function global:bii-identify-regression-build() {
+    <#
+    .SYNOPSIS
+        Attempts to build a dbt command to do the minimum necessary build to
+        support regression test.
+
+        Will accept a specific commit to check against, or find the last commit
+        which is common ancestor for current branch and main (noting warning) if
+        latest on main (at midnight this morning) is different from that common
+        ancestor
+
+    .PARAMETER commit
+        a git commit hash to use instead of searching for latest on main (before
+        midnight last night)
+
+    .PARAMETER excludePredecessors
+        Controls whether build should run from after ingest objects forward or just
+        from changed objects forward
+
+    #>
+    [CmdletBinding()]
+    param (
+        [string] $commit = $null,
+        [switch] $excludePredecessors = $false
+    )
+
+    . $PSScriptRoot\other\identify-regression-build.ps1
+
+    $params=@{
+        commit = $commit
+        excludePredecessors = $excludePredecessors
+    }
+
+    identify-regression-build @params
+}
+
 ### End of File
