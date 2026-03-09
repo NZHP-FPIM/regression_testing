@@ -12,7 +12,7 @@ Write-Host "Regression DB: $regressionDB"
 $env:DBT_DATABASE = $regressionDB
 
 # Load additional environment setup
-. "$PSScriptRoot/../../_env/pipeline_env.ps1"
+. "$PSScriptRoot/_env/pipeline_env.ps1"
 
 if ( $env:PROD -eq $true ) { $prod=$true } else { $prod=$false }
 if ( $env:SKIPCLONE -eq $true ) { $skipClone=$true } else { $skipClone=$false }
