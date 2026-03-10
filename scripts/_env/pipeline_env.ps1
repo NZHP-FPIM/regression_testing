@@ -19,7 +19,7 @@
 $PSVersionTable | out-string | write-debug
 
 "Define cmdlets" | write-debug
-. $PSScriptRoot/../includes/common_functions.ps1
+. $PSScriptRoot/../common_functions.ps1
 
 # These are environment variables that are pretty
 # standard for regression - note that DBT_TARGET
