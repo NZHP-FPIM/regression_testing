@@ -90,7 +90,7 @@ function global:bii-dbt-regression() {
 
     $transcript="./regression.txt"
 
-    . $PSScriptRoot/other/dbt-regression.ps1
+    . $PSScriptRoot/dbt-regression.ps1
 
     if ( -Not $transcriptOff ) {
         $params=@{ Append = $Append }
