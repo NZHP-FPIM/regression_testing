@@ -16,7 +16,7 @@
 {{ config(
     materialized="view",
     pre_hook="{{ 
-        tr_column_comparisons(
+        regression_testing.tr_column_comparisons(
             row_count_view=this.schema~'.primary_key_compare_b', 
             target_view=this.schema~'.'~this.name~'_b'
         ) 

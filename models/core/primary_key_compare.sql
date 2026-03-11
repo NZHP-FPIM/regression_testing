@@ -15,7 +15,7 @@
 {{ config(
     materialized="view",
     pre_hook="{{ 
-        tr_pk_len_comparisons(
+        regression_testing.tr_pk_len_comparisons(
             table_hash_test=this.schema~'.table_hash_compare_b', 
             target_view=this.schema~'.'~this.name~'_b'
         ) 
