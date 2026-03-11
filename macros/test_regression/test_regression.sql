@@ -15,7 +15,7 @@
         {{ log("Row Comparisons",true) }}
         {{ tr_row_comparisons(verbose=false) }}
         {{ log("Table Comparisons",true) }}
-        {{ tr_table_comparisons(target_table=target_table,verbose=false) }}
+        {{ regression_testing.tr_table_comparisons(target_table=target_table,verbose=false) }}
     {% endif %}
 {% endmacro %}
 

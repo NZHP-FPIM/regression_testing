@@ -26,7 +26,7 @@
 
 {% macro tr_pk_len_comparisons(table_hash_test='DBT_TEST_REGRESSION.table_hash_test', target_view='DBT_TEST_REGRESSION.row_count_pk_compare', verbose=false) %}
 
-    {% set regression_db = get_regression_db() %}
+    {% set regression_db = regression_testing.get_regression_db() %}
     {% set table_hash_test=regression_db~'.'~table_hash_test %}
 
     {% set queryMismatchTables %}

@@ -19,9 +19,9 @@
         ,verbose=false
 ) %}
 
-    {% set regression_db=get_regression_db() %}
+    {% set regression_db = regression_testing.get_regression_db() %}
     {% set target_table=regression_db~'.'~target_table %}
-    {% set target_schema_row_cmp=get_row_cmp_schema() %}
+    {% set target_schema_row_cmp = regression_testing.get_row_cmp_schema() %}
 
     {% set queryCreate %}
         create or replace table {{ target_table }}

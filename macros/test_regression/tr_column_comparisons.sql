@@ -27,7 +27,7 @@
 
 {% macro tr_column_comparisons(row_count_view='DBT_TEST_REGRESSION.row_count_pk_compare', target_view='DBT_TEST_REGRESSION.column_compare', verbose=false) %}
 
-    {% set regression_db = get_regression_db() %}
+    {% set regression_db = regression_testing.get_regression_db() %}
     {% set target_view = regression_db~'.'~target_view %}
     {% set row_count_view = regression_db~'.'~row_count_view %}
 

@@ -26,12 +26,12 @@
         {% set info_schema = var('cInfoSchema') %}
         {% set t = run_query('create schema if not exists '~info_schema) %}
 
-        {{ startup_logging() }}
+        {{ regression_testing.startup_logging() }}
 
         {{ print('############ upgrade_version macro is removed from on-run-start hook. Please run separately') }}
         {{ print('############ > dbt run-operation upgrade_version') }}
 
-        {% set tmp = get_regression_db() %}
+        {% set tmp = regression_testing.get_regression_db() %}
 
     {% endif %}
 {% endmacro %}

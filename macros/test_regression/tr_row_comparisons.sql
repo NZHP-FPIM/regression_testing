@@ -17,8 +17,8 @@
     ,dry_run=false
 ) %}
 
-    {% set test_db = get_regression_db() %}
-    {% set create_in_schema = get_row_cmp_schema() %}
+    {% set test_db = regression_testing.get_regression_db() %}
+    {% set create_in_schema = regression_testing.get_row_cmp_schema() %}
 
     {% do run_query('drop schema if exists '~create_in_schema) %}
     {% do run_query('create schema if not exists '~create_in_schema) %}
