@@ -41,7 +41,7 @@ from base as a
 where
     a.table_catalog not like '%_STAGE'
     and a.table_schema not like 'DBT_TEST%'
-    and a.table_schema not in ('INFORMATION_SCHEMA' ,'INFO_HS' ,'PUBLIC' ,'ROW_COMPARISON' ,'DBT_00_SUMMARY')
+    and a.table_schema not in ('INFORMATION_SCHEMA' ,'INFO_HS' ,'PUBLIC' ,'ROW_COMPARISON')
 group by
     a.table_schema
     ,a.table_name

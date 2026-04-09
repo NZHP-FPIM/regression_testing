@@ -123,7 +123,7 @@ function summary-output() {
     # and something that needs some clean up
     $regressionDB_ext="_core"
 
-    $querySummary="select NUMBER_ROWS,TEST_NAME,CATEGORY,TEST_DETAILS from DBT_00_summary.regression_summary"
+    $querySummary="select NUMBER_ROWS,TEST_NAME,CATEGORY,TEST_DETAILS from DBT_test_regression.regression_summary"
     $querySummaryNote='Regression Summary'
     $queryTableHash="select OBJECT_TEST from DBT_test_regression.TABLE_HASH_COMPARE where match = false"
     $queryTableHashNote='Table Hash Compare - Not match'

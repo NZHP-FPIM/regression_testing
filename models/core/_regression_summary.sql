@@ -5,7 +5,7 @@
 
 {{ config(
     materialized="view",
-    schema="00_summary",
+    schema="test_regression",
     post_hook="{{ print_query(query='select number_rows,test_name,category,test_details from '~this) }}",
     alias="regression_summary",
 ) }}
