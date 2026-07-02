@@ -7,7 +7,7 @@ with pass1 as (
         end as change
     from {{ ref('columns_in_database_s20') }}
     where gold != test
-        and split_part(test_table, '.', 1) ilike '%_PRESENT'
+        and (split_part(test_table, '.', 1) ilike '%_PRESENT' or split_part(gold_table, '.', 1) ilike '%_PRESENT')
 )
 
 ,pass2 as (
