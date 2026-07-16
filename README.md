@@ -39,17 +39,6 @@ Key areas of the repository include:
 - [scripts](scripts) — PowerShell automation for setup and regression execution
 - [dbt_project.yml](dbt_project.yml) — dbt project configuration
 
-## Prerequisites
-
-Before using this package, the following should be available:
-
-- dbt installed and configured
-- Python with a virtual environment support
-- PowerShell (for the .ps1 automation scripts)
-- Network and access to the target data warehouse environment
-- Appropriate database roles/permissions to clone databases and create objects
-- A valid dbt profile for the project
-
 ## Required environment and configuration
 
 ### dbt profile
@@ -66,8 +55,10 @@ The regression scripts rely on several environment variables and values, includi
 
 - `REGRESSION_QA_DB` — source database for non-prod regression runs
 - `REGRESSION_PROD_DB` — source database for prod regression runs
-- `DBT_REGRESSION_FROM_DB` — resolved source database used by the regression logic
+- `REGRESSION_USER` - qa service account role as it has the permissions required for all regression testing
 - `FPIM_UAT_ENABLED` — toggles inclusion of FPIM UAT data in some flows
+
+In the current use case these are defined in the azure pipeline that is specific to the project using this package.
 
 ### Supporting configuration files
 
@@ -77,21 +68,6 @@ The setup script expects supporting configuration files and environment-specific
 - Snowflake configuration templates
 - Python requirements files
 - environment-specific PowerShell helper files
-
-## Installation and setup
-
-The package includes a setup script in [scripts/install.ps1](scripts/install.ps1) that is intended to:
-
-- create or activate a Python virtual environment
-- install required Python packages
-- configure dbt profiles
-- configure Snowflake-related environment settings
-
-Typical setup steps are:
-
-1. Ensure the required environment variables and profile files are in place.
-2. Run the installation script from a PowerShell session.
-3. Verify that dbt can connect to the intended warehouse.
 
 ## Running regression tests
 
@@ -120,6 +96,12 @@ This workflow:
 - clones relevant schemas and objects from a source database
 - applies role and permission changes
 - runs upgrade/version steps after clone operations
+
+For use in DEV you must have an environment variable called DBT_DATABASE which is set to 'USERDB_<username>_<project>_DEV'
+E.g. $env:DBT_DATABASE='USERDB_JZABAD_PSCH_DEV'
+The clone macro will append the database suffixes.
+
+The upgrade version macro must be defined in the dbt project that this package is being read in to.
 
 ### Regression comparison outputs
 
@@ -159,8 +141,7 @@ The regression scripts create timestamped log directories and write detailed out
 
 ## Schema Configurations:
 
--- regression test is only defined in dev and acceptance environments, it should never
--- be enabled on PROD environment
+-- regression test is only defined in dev and acceptance environments, it should never be enabled on PROD environment
 
   regression_testing:
     +schema: test_regression
@@ -193,18 +174,50 @@ vars:
   qa_role: name of uat service account role
   dev_role: name of developer role
 
-## Recommended usage checklist
+## Installation and setup
 
-Before running regression testing, confirm that:
+The package includes a setup script in [scripts/install.ps1](scripts/install.ps1) that is intended to:
 
-- the dbt profile is valid
-- the target warehouse is reachable
-- source and target databases are accessible
-- you are checkout out on the correct branch to test
-- permissions for clone and object creation are available
-- variables defined in dbt_project.yml
+- create or activate a Python virtual environment
+- install required Python packages
+- configure dbt profiles
+- configure Snowflake-related environment settings
 
+Typical setup steps are:
+
+1. Ensure the required environment variables and profile are in place.
+2. Add to packages.yml
+  - git: "https://github.com/josefinazabad-two/regression_testing.git"
+    revision: main
+3. Create selectors (E.g. transform selector)
+  - name: transform
+    description: |
+      This is standard selector used in acc/prod for getting all transform defined models only (excludes ingest category)
+    definition:
+      union:
+      - method: tag
+        value: regression_test_stage
+        children: false
+        parents:  true
+      - method: tag
+        value: bist
+        children: false
+        parents:  true
+      - exclude:
+        - method: path
+          value:  models/ingest
+          parents: true
+          children: false
+4. Added as a last column on core models:
+,{{ regression_testing.tr_include_regression(unknown_row=false) }}
+5. Create the azure pipeline yml / github action script using QA service account role key
+6. Using any powershell function requires a dot include
+E.g. . ./packages/regression_testing/scripts/common_functions.ps1
+3. For the 1 use case enabled, the azure pipeline can be triggered through powershell function bii-cloud-regression. This will specifically trigger the Regression pipeline on bi project
 
 ## Summary
 
 This package is a specialized dbt regression framework for validating warehouse changes against a known-good reference environment. It is most useful in environments where repeatable, database-level regression checks are required before promoting changes.
+
+It was written for Procurement & Supply Chain dbt project and 
+currently requires the use of a powershell terminal to operate.
