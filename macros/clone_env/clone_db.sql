@@ -1,3 +1,5 @@
+-- Database cloning macro with optional schema-level filtering
+-- Co-authored with CoCo
 {#- /*
 --  Filename: clone_db.sql
 --  Author: Jared Church <jared.church@healthsourcenz.co.nz>
@@ -27,7 +29,7 @@
 
 */ -#}
 
-{% macro clone_db(from_db= var('qa_db') ,to_db='',verbose=false) %}
+{% macro clone_db(from_db= var('qa_db') ,to_db='',schema_filter='',verbose=false) %}
 
     {% set qa_db= var('qa_db') %}
     {% set qa_role= var('qa_role') %}
@@ -81,6 +83,7 @@
     {{ log('from_role: '~from_role  ,verbose) }}
     {{ log('to_db:     '~to_db  ,verbose) }}
     {{ log('to_role:   '~to_role  ,verbose) }}
+    {{ log('schema_filter: '~schema_filter  ,verbose) }}
 
     {# /* drop database family for to_db */ #}
     {{ log('Drop Database Family',true) }}
@@ -94,40 +97,68 @@
     {% do run_query('drop database if exists '~to_db~suffix_regression) %}
 
     {# /* clone required databases */ #}
-    {{ clone_db2(from_db=from_lr ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member=suffix_lr) }}
-    {{ clone_db2(from_db=from_db ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member='') }}
-    {{ clone_db2(from_db=from_land ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member=suffix_land) }}
-    {{ clone_db2(from_db=from_persist ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member=suffix_persist) }}
-    {{ clone_db2(from_db=from_staging ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member=suffix_staging) }}
-    {{ clone_db2(from_db=from_core ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member=suffix_core) }}
-    {{ clone_db2(from_db=from_present ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member=suffix_present) }}
+    {{ clone_db2(from_db=from_lr ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member=suffix_lr, schema_filter=schema_filter, verbose=verbose) }}
+    {{ clone_db2(from_db=from_db ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member='', schema_filter=schema_filter, verbose=verbose) }}
+    {{ clone_db2(from_db=from_land ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member=suffix_land, schema_filter=schema_filter, verbose=verbose) }}
+    {{ clone_db2(from_db=from_persist ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member=suffix_persist, schema_filter=schema_filter, verbose=verbose) }}
+    {{ clone_db2(from_db=from_staging ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member=suffix_staging, schema_filter=schema_filter, verbose=verbose) }}
+    {{ clone_db2(from_db=from_core ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member=suffix_core, schema_filter=schema_filter, verbose=verbose) }}
+    {{ clone_db2(from_db=from_present ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member=suffix_present, schema_filter=schema_filter, verbose=verbose) }}
     {# /* run upgrade for any changes necessary here  */ #}
     {% do run_query('use database '~to_db) %}
     {{ upgrade_version() }}
 
 {% endmacro %}
 
-{% macro clone_db2(from_db,to_db,from_role,to_role, fam_member) %}
+{% macro clone_db2(from_db,to_db,from_role,to_role, fam_member, schema_filter='', verbose=false) %}
 
     {# /* drop & clone the existing to databases - main and land */ #}
     {{ log('clone db '~to_db~fam_member~' from '~from_db,'true') }}
     {% do run_query('use role '~to_role) %}
     {% do run_query('drop database if exists '~to_db~fam_member) %}
 
-    {# /* use stored procedure that handles cloning and grants transfer */#}
-    {% do run_query('use database DEV_ADMIN') %}
-    {% do run_query('use schema PUBLIC') %}
-    {% do run_query("call CREATE_CLN_DB('"~to_db~"', '"~from_db~"', '"~to_role~"')") %}
+    {% if schema_filter|length %}
+        {# /*
+        -- Schema-filtered clone: create empty database then clone only
+        -- schemas matching the filter prefix (e.g., 'payroll' → 'payroll%')
+        */ #}
+        {{ log('Schema filter active: '~schema_filter~'%', true) }}
 
-    {# /* 
-        drop regression test schema - this schema still has views that point at objects relative
-        to the source database rather than target database. Removing this reduces chance of 
-        confusion.
-    */ #}
-    {% do run_query('use role '~to_role) %}
-    {% do run_query('drop schema if exists cln_'~to_db~'_'~from_db~'.DBT_TEST_REGRESSION') %}
-    {% do run_query('alter database cln_'~to_db~'_'~from_db~' rename to '~to_db~fam_member) %}
+        {% do run_query('create database '~to_db~fam_member) %}
 
+        {# Query source database for matching schemas #}
+        {% set schema_query %}
+            select schema_name
+            from {{ from_db }}.information_schema.schemata
+            where schema_name ilike '{{ schema_filter }}%'
+              and schema_name != 'INFORMATION_SCHEMA'
+        {% endset %}
+
+        {% set schemas = run_query(schema_query) %}
+        {% for schema_row in schemas %}
+            {% set schema_name = schema_row[0] %}
+            {{ log('  Cloning schema: '~from_db~'.'~schema_name~' → '~to_db~fam_member~'.'~schema_name, true) }}
+            {% do run_query('create schema '~to_db~fam_member~'.'~schema_name~' clone '~from_db~'.'~schema_name) %}
+        {% endfor %}
+
+        {{ log('  Cloned '~schemas|length~' schema(s) matching '~schema_filter~'%', true) }}
+
+    {% else %}
+        {# /* Full database clone (original behaviour) */ #}
+        {# /* use stored procedure that handles cloning and grants transfer */ #}
+        {% do run_query('use database DEV_ADMIN') %}
+        {% do run_query('use schema PUBLIC') %}
+        {% do run_query("call CREATE_CLN_DB('"~to_db~"', '"~from_db~"', '"~to_role~"')") %}
+
+        {# /* 
+            drop regression test schema - this schema still has views that point at objects relative
+            to the source database rather than target database. Removing this reduces chance of 
+            confusion.
+        */ #}
+        {% do run_query('use role '~to_role) %}
+        {% do run_query('drop schema if exists cln_'~to_db~'_'~from_db~'.DBT_TEST_REGRESSION') %}
+        {% do run_query('alter database cln_'~to_db~'_'~from_db~' rename to '~to_db~fam_member) %}
+    {% endif %}
 
 {% endmacro %}
 

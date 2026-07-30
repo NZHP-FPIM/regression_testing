@@ -1,0 +1,31 @@
+# dbt Cloud Job steps for regression testing
+# Co-authored with CoCo
+#
+# Paths prefixed with "regression_testing:" refer to models inside
+# the regression_testing dbt package.
+# All other paths are relative to the executing (root) project.
+
+steps:
+
+  # Step 1: Clone + upgrade
+  - command: "dbt run-operation run_regression_setup"
+
+  # Step 2: Seeds
+  - command: "dbt seed"
+
+  # Step 3: Build transform models (no tests)
+  # These paths are in the ROOT project (the one executing this job)
+  - command: "dbt run --select path:snapshots/payroll_reference+ path:models/core+"
+
+  # Step 4: Run tests only (BIST from package + generic/singular on transform)
+  # Root project paths + BIST tests from the regression_testing package
+  - command: "dbt test --select path:snapshots/payroll_reference+ path:models/core+ regression_testing:path:tests/bist"
+
+  # Step 5: Build regression comparison models from the package (no tests)
+  - command: "dbt run --select regression_testing:path:models"
+
+  # Step 6: Run regression tests from the package
+  - command: "dbt test --select regression_testing:path:models"
+
+  # Step 7: Summary
+  - command: "dbt run-operation run_regression_summary"

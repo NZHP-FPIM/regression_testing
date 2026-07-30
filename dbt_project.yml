@@ -11,6 +11,14 @@ model-paths: ["models"]
 test-paths: ["tests"]
 macro-paths: ["macros"]
 
+vars:
+  # Package-specific vars (defaults for regression_testing package)
+  # The root project must define: prod_db, qa_db, prod_role, qa_role, dev_role
+  regression_skip_clone: false
+  regression_use_prod: false
+  regression_full_ingest: false
+  regression_schema_filter: ""
+
 models:
   regression_testing:
     example:
