@@ -120,17 +120,17 @@ with foreign_keys as (
 
 {# /* Defines the expected case based on reference data file */ #}
 ,expected_cases as (
-    select * from {{ source("PSCHTM_DATA_ENGINEERING",'dbt_expected_test_types') }}
+    select * from {{ ref('dbt_expected_test_types') }}
 )
-
+/*
 ,exceptions as (
     select
         *
         ,true as exclude_case
-    from {{ source("PSCHTM_DATA_ENGINEERING","EXPECTED_TEST_CASES_EXCEPTION_LIST") }}
+    from {{ ref("EXPECTED_TEST_CASES_EXCEPTION_LIST") }}
 
 )
-
+ */
 select
     a.table_catalog
     ,a.table_schema
@@ -140,19 +140,20 @@ select
     ,a.object_full_name
     ,e.table_type
     ,a.key_type
-    ,coalesce(ex.exclude_case ,false) as exclude_case
+  --  ,coalesce(ex.exclude_case ,false) as exclude_case
 from expected_cases as e
 inner join all_objects as a
     on
         a.table_type = e.table_type
         and a.key_type = e.key_type
+        /*
 left join exceptions as ex
     on
         ex.table_schema = a.table_schema
         and ex.table_name = a.table_name
         and ex.column_name = a.column_name
         and ex.test_type = e.test_type
-
+*/
 
 
 

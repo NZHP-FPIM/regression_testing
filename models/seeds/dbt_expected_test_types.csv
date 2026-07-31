@@ -1,0 +1,29 @@
+TABLE_TYPE,KEY_TYPE,TEST_TYPE,COMMENT
+BRIDGE,BOOLEAN,not_null,
+BRIDGE,foreign_key,relationships,
+BRIDGE,foreign_key,not_null,
+BRIDGE,primary_key,unique,bridges are treated the same as a fact
+BRIDGE,primary_key,not_null,
+BRIDGE,TEXT,not_null,
+BRIDGE,text_cols,not_null,
+DIM,BOOLEAN,not_null,
+DIM,foreign_key,relationships,these should not really exist - need to be reviewed
+DIM,primary_key,unique,primary key on dimension table gets a test of uniqueness
+DIM,primary_key,not_null,
+DIM,primary_key,unknown_row_exists,
+DIM,TEXT,not_null,
+DIM,text_cols,not_null,
+FACT,BOOLEAN,not_null,
+FACT,foreign_key,relationships,
+FACT,foreign_key,not_null,
+FACT,primary_key,unique,
+FACT,primary_key,not_null,
+FACT,TEXT,not_null,
+FACT,text_cols,not_null,
+REP,BOOLEAN,not_null,
+REP,foreign_key,relationships,
+REP,foreign_key,not_null,
+REP,primary_key,unique,REP is a report and is treated the same as a fact
+REP,primary_key,not_null,
+REP,TEXT,not_null,
+REP,text_cols,not_null,
