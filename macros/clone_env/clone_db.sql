@@ -87,18 +87,18 @@
 
     {# /* drop database family for to_db */ #}
     {{ log('Drop Database Family',true) }}
-    {% do run_query('drop database if exists '~to_db) %}
+    {# /* {% do run_query('drop database if exists '~to_db) %} */ #}
     {% do run_query('drop database if exists '~to_db~suffix_lr) %}
     {% do run_query('drop database if exists '~to_db~suffix_land) %}
     {% do run_query('drop database if exists '~to_db~suffix_persist) %}
     {% do run_query('drop database if exists '~to_db~suffix_staging) %}
     {% do run_query('drop database if exists '~to_db~suffix_core) %}
     {% do run_query('drop database if exists '~to_db~suffix_present) %}
-    {% do run_query('drop database if exists '~to_db~suffix_regression) %}
+    {# suffix_regression removed - no longer part of database family #}
 
     {# /* clone required databases */ #}
     {{ clone_db2(from_db=from_lr ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member=suffix_lr, schema_filter=schema_filter, verbose=verbose) }}
-    {{ clone_db2(from_db=from_db ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member='', schema_filter=schema_filter, verbose=verbose) }}
+    {# /* {{ clone_db2(from_db=from_db ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member='', schema_filter=schema_filter, verbose=verbose) }} */ #}
     {{ clone_db2(from_db=from_land ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member=suffix_land, schema_filter=schema_filter, verbose=verbose) }}
     {{ clone_db2(from_db=from_persist ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member=suffix_persist, schema_filter=schema_filter, verbose=verbose) }}
     {{ clone_db2(from_db=from_staging ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member=suffix_staging, schema_filter=schema_filter, verbose=verbose) }}
@@ -106,42 +106,51 @@
     {{ clone_db2(from_db=from_present ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member=suffix_present, schema_filter=schema_filter, verbose=verbose) }}
     {# /* run upgrade for any changes necessary here  */ #}
     {% do run_query('use database '~to_db) %}
-    {{ upgrade_version() }}
+    {# /* {{ upgrade_version() }} */ #}
 
 {% endmacro %}
 
 {% macro clone_db2(from_db,to_db,from_role,to_role, fam_member, schema_filter='', verbose=false) %}
 
-    {# /* drop & clone the existing to databases - main and land */ #}
+    {# /* clone the database - already dropped by clone_db */ #}
     {{ log('clone db '~to_db~fam_member~' from '~from_db,'true') }}
     {% do run_query('use role '~to_role) %}
-    {% do run_query('drop database if exists '~to_db~fam_member) %}
+    {# /* {% do run_query('drop database if exists '~to_db~fam_member) %} */ #}
 
     {% if schema_filter|length %}
         {# /*
-        -- Schema-filtered clone: create empty database then clone only
-        -- schemas matching the filter prefix (e.g., 'payroll' → 'payroll%')
+        -- Schema-filtered clone: full clone via stored proc (for permissions),
+        -- then drop schemas that don't match the filter.
+        -- Keeps PUBLIC and matching schemas, removes everything else.
         */ #}
-        {{ log('Schema filter active: '~schema_filter~'%', true) }}
 
-        {% do run_query('create database '~to_db~fam_member) %}
+        {# Full clone with grants via stored procedure #}
+        {% do run_query('use database DEV_ADMIN') %}
+        {% do run_query('use schema PUBLIC') %}
+        {% do run_query("call CREATE_CLN_DB('"~to_db~"', '"~from_db~"', '"~to_role~"')") %}
 
-        {# Query source database for matching schemas #}
+        {% do run_query('use role '~to_role) %}
+        {% do run_query('drop schema if exists cln_'~to_db~'_'~from_db~'.DBT_TEST_REGRESSION') %}
+        {% do run_query('alter database cln_'~to_db~'_'~from_db~' rename to '~to_db~fam_member) %}
+
+        {# /* Now drop schemas that don't match the filter */ #}
+        {{ log('Schema filter active: keeping '~schema_filter~'% + PUBLIC', true) }}
+
         {% set schema_query %}
             select schema_name
-            from {{ from_db }}.information_schema.schemata
-            where schema_name ilike '{{ schema_filter }}%'
-              and schema_name != 'INFORMATION_SCHEMA'
+            from {{ to_db~fam_member }}.information_schema.schemata
+            where schema_name not ilike '{{ schema_filter }}%'
+              and schema_name not in ('INFORMATION_SCHEMA', 'PUBLIC')
         {% endset %}
 
-        {% set schemas = run_query(schema_query) %}
-        {% for schema_row in schemas %}
+        {% set schemas_to_drop = run_query(schema_query) %}
+        {% for schema_row in schemas_to_drop %}
             {% set schema_name = schema_row[0] %}
-            {{ log('  Cloning schema: '~from_db~'.'~schema_name~' → '~to_db~fam_member~'.'~schema_name, true) }}
-            {% do run_query('create schema '~to_db~fam_member~'.'~schema_name~' clone '~from_db~'.'~schema_name) %}
+            {{ log('  Dropping schema: '~to_db~fam_member~'.'~schema_name, verbose) }}
+            {% do run_query('drop schema if exists '~to_db~fam_member~'.'~schema_name) %}
         {% endfor %}
 
-        {{ log('  Cloned '~schemas|length~' schema(s) matching '~schema_filter~'%', true) }}
+        {{ log('  Dropped '~schemas_to_drop|length~' schema(s) not matching '~schema_filter~'%', true) }}
 
     {% else %}
         {# /* Full database clone (original behaviour) */ #}
