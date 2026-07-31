@@ -1,0 +1,50 @@
+version: 2
+
+sources:
+  - name: target_info_schema
+    description: |
+      Information schema for the dbt target database (_present suffix).
+      This source is defined in the regression_testing package so consuming
+      projects don't need to redeclare it.
+    database: "{{ target.database }}_present"
+    schema: information_schema
+
+    tables:
+      - name: columns
+        columns:
+          - name: TABLE_CATALOG
+          - name: TABLE_SCHEMA
+          - name: TABLE_NAME
+          - name: COLUMN_NAME
+      - name: tables
+      - name: schemata
+
+  - name: target_info_schema_core
+    description: Information schema for the _core database in the target family.
+    database: "{{ target.database }}_core"
+    schema: information_schema
+
+    tables:
+      - name: columns
+        columns:
+          - name: TABLE_CATALOG
+          - name: TABLE_SCHEMA
+          - name: TABLE_NAME
+          - name: COLUMN_NAME
+      - name: tables
+      - name: schemata
+
+  - name: target_info_schema_land
+    description: Information schema for the _land database in the target family.
+    database: "{{ target.database }}_land"
+    schema: information_schema
+
+    tables:
+      - name: columns
+        columns:
+          - name: TABLE_CATALOG
+          - name: TABLE_SCHEMA
+          - name: TABLE_NAME
+          - name: COLUMN_NAME
+      - name: tables
+      - name: schemata
