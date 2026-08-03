@@ -127,10 +127,15 @@
         {# Full clone with grants via stored procedure #}
         {% do run_query('use database DEV_ADMIN') %}
         {% do run_query('use schema PUBLIC') %}
+        
+        {{ log('call stored proc','true') }}        
         {% do run_query("call CREATE_CLN_DB('"~to_db~"', '"~from_db~"', '"~to_role~"')") %}
-
         {% do run_query('use role '~to_role) %}
+
+        {{ log('drop regression schema','true') }}        
         {% do run_query('drop schema if exists cln_'~to_db~'_'~from_db~'.DBT_TEST_REGRESSION') %}
+        
+        {{ log('alter db name','true') }}        
         {% do run_query('alter database cln_'~to_db~'_'~from_db~' rename to '~to_db~fam_member) %}
 
         {# /* Now drop schemas that don't match the filter */ #}
