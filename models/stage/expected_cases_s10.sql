@@ -127,7 +127,7 @@ with foreign_keys as (
     select
         *
         ,true as exclude_case
-    from {{ ref("EXPECTED_TEST_CASES_EXCEPTION_LIST") }}
+    from 'EXPECTED_TEST_CASES_EXCEPTION_LIST'
 
 )
  */
