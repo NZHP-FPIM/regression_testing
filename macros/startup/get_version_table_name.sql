@@ -5,7 +5,7 @@
     -- other macros can use this.
     #}
     
-    {% set version_table = target.database~'.'~var('cInfoSchema')~"."~var('cVersionTable') %}
+    {% set version_table = target.database~'_land.'~var('cInfoSchema')~"."~var('cVersionTable') %}
     {{ log ('Version Table: '~version_table,verbose) }}
     {{ return (version_table) }}
 
