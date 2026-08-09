@@ -7,7 +7,7 @@
     {% set version_table = regression_testing.get_version_table_name() %}
 
     {% set new_version=1 %}
-    {% do run_query('create schema if not exists '~var('cInfoSchema')) %}
+    {% do run_query('create schema if not exists '~target.database~'_land.'~var('cInfoSchema')) %}
     {% do run_query('create table if not exists '~version_table~' as (select '~new_version~' as version from dual)') %}
 
     -- find out what current version is
