@@ -6,7 +6,7 @@ sources:
       Information schema for the dbt target database (_present suffix).
       This source is defined in the regression_testing package so consuming
       projects don't need to redeclare it.
-    database: "{{ target.database }}_present"
+    database: "{{ env_var('DBT_TARGET_DB') }}_present"
     schema: information_schema
 
     tables:
@@ -21,7 +21,7 @@ sources:
 
   - name: target_info_schema_core
     description: Information schema for the _core database in the target family.
-    database: "{{ target.database }}_core"
+    database: "{{ env_var('DBT_TARGET_DB') }}_core"
     schema: information_schema
 
     tables:
@@ -36,7 +36,7 @@ sources:
 
   - name: target_info_schema_land
     description: Information schema for the _land database in the target family.
-    database: "{{ target.database }}_land"
+    database: "{{ env_var('DBT_TARGET_DB') }}_land"
     schema: information_schema
 
     tables:

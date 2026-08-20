@@ -148,15 +148,15 @@ The regression scripts create timestamped log directories and write detailed out
     enabled: "{{ target.name not in ['fdp_prod'] | as_bool }}"
     core:
       +tags: ["regression_test"]
-      +database: "{{ target.database }}_core"
+      +database: "{{ env_var('DBT_TARGET_DB') }}_core"
     stage:
       +tags: ["regression_test_stage"]
-      +database: "{{ target.database }}_stage"
+      +database: "{{ env_var('DBT_TARGET_DB') }}_stage"
 
 -- Configuring Tests
 
 data_tests:
-  +database: "{{ target.database }}_core"
+  +database: "{{ env_var('DBT_TARGET_DB') }}_core"
   hsnz_bii:
     +schema: TEST_AUDIT
   regression_testing:

@@ -93,7 +93,7 @@
         {{ log('Derived regression DB from branch "' ~ branch ~ '": ' ~ to_db, true) }}
     {% else %}
         {# No branch env var available — fall back to profile target database #}
-        {% set to_db = target.database %}
+        {% set to_db = env_var('DBT_TARGET_DB') %}
         {{ log('No branch env var found, using target.database: ' ~ to_db, true) }}
     {% endif %}
 

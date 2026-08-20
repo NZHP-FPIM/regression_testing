@@ -27,10 +27,10 @@
 
 {% if execute %}
     {% set gold_dbs = get_database_family(family = env_var('DBT_REGRESSION_FROM_DB', var('qa_db')) ) %}
-    {% set test_dbs = get_database_family(family = target.database) %}
+    {% set test_dbs = get_database_family(family = env_var('DBT_TARGET_DB')) %}
 {% else %}
     {% set gold_dbs = [var('qa_db')] %}
-    {% set test_dbs = [target.database] %}
+    {% set test_dbs = [env_var('DBT_TARGET_DB')] %}
 {% endif %}
 
 {% for db in gold_dbs if 'REGRESSION' not in db %}
@@ -52,7 +52,7 @@
 
     /* Current database as the test database*/
     select
-        '{{ target.database }}' as db_family
+        '{{ env_var('DBT_TARGET_DB') }}' as db_family
         ,{{ cols }}
         ,0 as gold
         ,1 as test
