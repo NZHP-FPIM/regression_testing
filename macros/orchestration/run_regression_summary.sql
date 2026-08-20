@@ -57,7 +57,7 @@
 {% macro _regression_query(query, title, db_ext='_core') %}
     {# Helper: execute a query against regression db and log results #}
 
-    {% set full_db = target.database ~ db_ext %}
+    {% set full_db = env_var('DBT_TARGET_DB') ~ db_ext %}
     {% set full_query = 'select * from ' ~ full_db ~ '.' ~ query.split('from ')[1] if 'from ' in query.lower() else query %}
 
     {# Build the actual query with correct database prefix #}

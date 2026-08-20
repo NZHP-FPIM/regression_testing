@@ -42,7 +42,7 @@
 
     {# if not set at the args then use default database from profile.yml #}
     {% if not to_db|length %}
-        {% set to_db=database %}
+        {% set to_db = env_var('DBT_TARGET_DB') %}
     {% endif %}
 
     {# /*
