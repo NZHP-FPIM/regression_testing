@@ -105,8 +105,8 @@
     {{ clone_db2(from_db=from_core ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member=suffix_core, schema_filter=schema_filter, verbose=verbose) }}
     {{ clone_db2(from_db=from_present ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member=suffix_present, schema_filter=schema_filter, verbose=verbose) }}
     {# /* run upgrade for any changes necessary here  */ #}
-    {% do run_query('use database '~to_db) %}
-    {# /* {{ upgrade_version() }} */ #}
+    {% do run_query('use database '~to_db~suffix_land) %}
+    {{ upgrade_version() }}
 
 {% endmacro %}
 
