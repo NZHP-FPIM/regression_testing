@@ -69,6 +69,7 @@
     {% set suffix_staging = '_stage' %}
     {% set suffix_core = '_core' %}
     {% set suffix_present = '_present' %}
+    {% set suffix_share = '_share' %}
 
     {% set from_lr = from_db~suffix_lr %}
     {% set from_land = from_db~suffix_land %}
@@ -76,14 +77,13 @@
     {% set from_staging = from_db~suffix_staging %}
     {% set from_core = from_db~suffix_core %}
     {% set from_present = from_db~suffix_present %}
-
+    {% set from_share = from_db~suffix_share %}
 
 
     {{ log('from_db:   '~from_db  ,verbose) }}
     {{ log('from_role: '~from_role  ,verbose) }}
     {{ log('to_db:     '~to_db  ,verbose) }}
     {{ log('to_role:   '~to_role  ,verbose) }}
-    {{ log('schema_filter: '~schema_filter  ,verbose) }}
 
     {# /* drop database family for to_db */ #}
     {{ log('Drop Database Family',true) }}
@@ -94,73 +94,36 @@
     {% do run_query('drop database if exists '~to_db~suffix_staging) %}
     {% do run_query('drop database if exists '~to_db~suffix_core) %}
     {% do run_query('drop database if exists '~to_db~suffix_present) %}
+    {% do run_query('drop database if exists '~to_db~suffix_share) %}
     {# suffix_regression removed - no longer part of database family #}
 
     {# /* clone required databases */ #}
-    {{ clone_db2(from_db=from_lr ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member=suffix_lr, schema_filter=schema_filter, verbose=verbose) }}
-    {# /* {{ clone_db2(from_db=from_db ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member='', schema_filter=schema_filter, verbose=verbose) }} */ #}
-    {{ clone_db2(from_db=from_land ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member=suffix_land, schema_filter=schema_filter, verbose=verbose) }}
-    {{ clone_db2(from_db=from_persist ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member=suffix_persist, schema_filter=schema_filter, verbose=verbose) }}
-    {{ clone_db2(from_db=from_staging ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member=suffix_staging, schema_filter=schema_filter, verbose=verbose) }}
-    {{ clone_db2(from_db=from_core ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member=suffix_core, schema_filter=schema_filter, verbose=verbose) }}
-    {{ clone_db2(from_db=from_present ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member=suffix_present, schema_filter=schema_filter, verbose=verbose) }}
+    {{ clone_db2(from_db=from_lr ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member=suffix_lr, verbose=verbose) }}
+    {{ clone_db2(from_db=from_land ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member=suffix_land, verbose=verbose) }}
+    {{ clone_db2(from_db=from_persist ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member=suffix_persist, verbose=verbose) }}
+    {{ clone_db2(from_db=from_staging ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member=suffix_staging, verbose=verbose) }}
+    {{ clone_db2(from_db=from_core ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member=suffix_core, verbose=verbose) }}
+    {{ clone_db2(from_db=from_present ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member=suffix_present, verbose=verbose) }}
+    {{ clone_db2(from_db=from_share ,to_db=to_db ,from_role=from_role ,to_role=to_role, fam_member=suffix_share, verbose=verbose) }}
     {# /* run upgrade for any changes necessary here  */ #}
     {% do run_query('use database '~to_db~suffix_land) %}
     {{ upgrade_version() }}
 
 {% endmacro %}
 
-{% macro clone_db2(from_db,to_db,from_role,to_role, fam_member, schema_filter='', verbose=false) %}
+{% macro clone_db2(from_db,to_db,from_role,to_role, fam_member, verbose=false) %}
 
-    {# /* clone the database - already dropped by clone_db */ #}
-    {{ log('clone db '~to_db~fam_member~' from '~from_db,'true') }}
-    {% do run_query('use role '~to_role) %}
-    {# /* {% do run_query('drop database if exists '~to_db~fam_member) %} */ #}
+    {% set source_databases = run_query("show databases like '"~from_db~"'") %}
 
-    {% if schema_filter|length %}
-        {# /*
-        -- Schema-filtered clone: full clone via stored proc (for permissions),
-        -- then drop schemas that don't match the filter.
-        -- Keeps PUBLIC and matching schemas, removes everything else.
-        */ #}
-
-        {# Full clone with grants via stored procedure #}
-        {% do run_query('use database DEV_ADMIN') %}
-        {% do run_query('use schema PUBLIC') %}
-        
-        {{ log('call stored proc','true') }}        
-        {% do run_query("call CREATE_CLN_DB('"~to_db~"', '"~from_db~"', '"~to_role~"')") %}
+    {# /* only try to clone the database if it exists - not all projects have the same layers */ #}
+    {% if source_databases|length > 0 %}
+        {# /* clone the database - already dropped by clone_db */ #}
+        {{ log('clone db '~to_db~fam_member~' from '~from_db,'true') }}
         {% do run_query('use role '~to_role) %}
+        {% do run_query('drop database if exists '~to_db~fam_member) %}
 
-        {{ log('drop regression schema','true') }}        
-        {% do run_query('drop schema if exists cln_'~to_db~'_'~from_db~'.DBT_TEST_REGRESSION') %}
-        
-        {{ log('alter db name','true') }}        
-        {% do run_query('alter database cln_'~to_db~'_'~from_db~' rename to '~to_db~fam_member) %}
-
-        {# /* Now drop schemas that don't match the filter */ #}
-        {{ log('Schema filter active: keeping '~schema_filter~'% + PUBLIC', true) }}
-
-        {% set schema_query %}
-            select schema_name
-            from {{ to_db~fam_member }}.information_schema.schemata
-            where schema_name not ilike '{{ schema_filter }}%'
-              and schema_name not in ('INFORMATION_SCHEMA', 'PUBLIC')
-        {% endset %}
-
-        {% set schemas_to_drop = run_query(schema_query) %}
-        {% for schema_row in schemas_to_drop %}
-            {% set schema_name = schema_row[0] %}
-            {{ log('  Dropping schema: '~to_db~fam_member~'.'~schema_name, verbose) }}
-            {% do run_query('drop schema if exists '~to_db~fam_member~'.'~schema_name) %}
-        {% endfor %}
-
-        {{ log('  Dropped '~schemas_to_drop|length~' schema(s) not matching '~schema_filter~'%', true) }}
-
-    {% else %}
-        {# /* Full database clone (original behaviour) */ #}
         {# /* use stored procedure that handles cloning and grants transfer */ #}
-        {% do run_query('use database DEV_ADMIN') %}
+        {% do run_query('use database PRD_ADMIN') %}
         {% do run_query('use schema PUBLIC') %}
         {% do run_query("call CREATE_CLN_DB('"~to_db~"', '"~from_db~"', '"~to_role~"')") %}
 
@@ -172,6 +135,8 @@
         {% do run_query('use role '~to_role) %}
         {% do run_query('drop schema if exists cln_'~to_db~'_'~from_db~'.DBT_TEST_REGRESSION') %}
         {% do run_query('alter database cln_'~to_db~'_'~from_db~' rename to '~to_db~fam_member) %}
+    {% else %}
+        {{ log('Skipping clone: source database '~from_db~' does not exist', true) }}
     {% endif %}
 
 {% endmacro %}
