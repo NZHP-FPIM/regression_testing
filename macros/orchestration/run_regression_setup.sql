@@ -26,7 +26,7 @@
 
 {% macro run_regression_setup(from_db=none, use_prod=none, skip_clone=none, verbose=false) %}
 
-    {# Resolve parameters from vars if not explicitly passed #}
+    {# /* Resolve parameters from vars if not explicitly passed */ #}
     {% set use_prod = use_prod if use_prod is not none else var('regression_use_prod', false) %}
     {% set skip_clone = skip_clone if skip_clone is not none else var('regression_skip_clone', false) %}
 
@@ -38,7 +38,7 @@
         {% endif %}
     {% endif %}
 
-    {# Derive branch-specific target database name #}
+    {# /* Derive branch-specific target database name */ #}
     {% set to_db = regression_testing.get_regression_target_db(from_db=from_db) %}
 
     {{ log('=== Regression Setup ===', true) }}
@@ -47,18 +47,13 @@
     {{ log('use_prod: ' ~ use_prod, true) }}
     {{ log('skip_clone: ' ~ skip_clone, true) }}
 
-    {# Step 1: Clone the database family #}
+    {# /* Step 1: Clone the database family */ #}
     {% if not skip_clone %}
         {{ log('--- Step 1: Clone Database ---', true) }}
         {{ clone_db(from_db=from_db, to_db=to_db, verbose=verbose) }}
     {% else %}
         {{ log('--- Step 1: Clone Database SKIPPED ---', true) }}
     {% endif %}
-
-    {# Step 2: Run version upgrade #}
-    {{ log('--- Step 2: Upgrade Version ---', true) }}
-    {% do run_query('use database ' ~ to_db) %}
-    {{ upgrade_version() }}
 
     {{ log('=== Regression Setup Complete ===', true) }}
 
@@ -87,12 +82,12 @@
     {% endif %}
 
     {% if branch %}
-        {# Sanitize branch name: replace non-alphanumeric with underscore #}
+        {# /* Sanitize branch name: replace non-alphanumeric with underscore */ #}
         {% set sanitized = modules.re.sub('[^a-zA-Z0-9]', '_', branch) %}
         {% set to_db = 'REGRESSION_' ~ from_db ~ '_' ~ sanitized | upper %}
         {{ log('Derived regression DB from branch "' ~ branch ~ '": ' ~ to_db, true) }}
     {% else %}
-        {# No branch env var available — fall back to profile target database #}
+        {# /* No branch env var available — fall back to profile target database */ #}
         {% set to_db = env_var('DBT_TARGET_DB') %}
         {{ log('No branch env var found, using target.database: ' ~ to_db, true) }}
     {% endif %}

@@ -20,28 +20,28 @@
     {{ log('╚══════════════════════════════════════════════════╝', true) }}
     {{ log('', true) }}
 
-    {# --- Regression Summary --- #}
+    {# /* Regression Summary */ #}
     {{ _regression_query(
         query="select NUMBER_ROWS, TEST_NAME, CATEGORY, TEST_DETAILS from DBT_TEST_REGRESSION.REGRESSION_SUMMARY",
         title="Regression Summary",
         db_ext="_core"
     ) }}
 
-    {# --- Table Hash Compare (mismatches only) --- #}
+    {# /* Table Hash Compare (mismatches only) */ #}
     {{ _regression_query(
         query="select OBJECT_TEST from DBT_TEST_REGRESSION.TABLE_HASH_COMPARE where match = false",
         title="Table Hash Compare - Not Matching",
         db_ext="_core"
     ) }}
 
-    {# --- Changed Objects in Presentation Layer --- #}
+    {# /* Changed Objects in Presentation Layer */ #}
     {{ _regression_query(
         query="select TABLE_SCHEMA, TABLE_NAME, CHANGE from DBT_TEST_REGRESSION.OBJECTS_ADDED_REMOVED where TABLE_SCHEMA like 'DBT_DM_%'",
         title="Changed Objects - Presentation Layer",
         db_ext="_core"
     ) }}
 
-    {# --- Changed Columns in Presentation Layer --- #}
+    {# /* Changed Columns in Presentation Layer */ #}
     {{ _regression_query(
         query="select TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, CHANGE, DATA_TYPE_WAS, DATA_TYPE_BECOMES from DBT_TEST_REGRESSION.COLUMNS_ADDED_REMOVED where TABLE_SCHEMA like 'DBT_DM_%' order by 1,2,3",
         title="Changed Columns - Presentation Layer",
@@ -55,12 +55,12 @@
 
 
 {% macro _regression_query(query, title, db_ext='_core') %}
-    {# Helper: execute a query against regression db and log results #}
+    {# /* Helper: execute a query against regression db and log results */ #}
 
     {% set full_db = env_var('DBT_TARGET_DB') ~ db_ext %}
     {% set full_query = 'select * from ' ~ full_db ~ '.' ~ query.split('from ')[1] if 'from ' in query.lower() else query %}
 
-    {# Build the actual query with correct database prefix #}
+    {# /* Build the actual query with correct database prefix */ #}
     {% set actual_query %}
         use database {{ full_db }};
     {% endset %}
@@ -73,11 +73,11 @@
         {% if results|length == 0 %}
             {{ log('  (no rows)', true) }}
         {% else %}
-            {# Log column headers #}
+            {# /* Log column headers */ #}
             {% set headers = results.column_names | join(' | ') %}
             {{ log('  ' ~ headers, true) }}
             {{ log('  ' ~ '-' * headers|length, true) }}
-            {# Log each row #}
+            {# /* Log each row */ #}
             {% for row in results %}
                 {% set row_values = [] %}
                 {% for col in row %}
